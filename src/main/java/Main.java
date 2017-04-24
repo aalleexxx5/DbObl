@@ -1,17 +1,25 @@
+import org.postgresql.util.PSQLException;
+
 import java.io.Console;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Scanner;
 
-/**
- * Created by Alex on 04/04/2017.
- */
+
 public class Main {
 
     public static void main(String[] args){
 
-        System.out.println("Connecting to database..");
+        System.out.println("Font test:");
+        System.out.println(Util.fitStringToLength("",5)+"|p");
+        System.out.println(Util.fitStringToLength("l",5)+"|a");
+        System.out.println(Util.fitStringToLength("l ",5)+"|s");
+        System.out.println(Util.fitStringToLength("wwwww",5)+"|s");
+        System.out.println(Util.fitStringToLength("WWWWWW",5)+"|e");
+        System.out.println(Util.fitStringToLength("WWWWWWWW",5)+"|d");
+
+        System.out.println("\nConnecting to database..");
 
         try {
             Class.forName("org.postgresql.Driver");
@@ -21,26 +29,26 @@ public class Main {
 
         Scanner scanner = new Scanner(System.in);
         /*System.out.println("Database username");
-        String username = scanner.next();
+        String username = scanner.nextLine();
         System.out.println("Input database password");
-        String password = scanner.next();
+        String password = scanner.nextLine();
         */
 
         String username = "postgres";
         String password = "258";
-        try (Connection con = DriverManager.getConnection("jdbc:postgresql:DatabaseObl",username,password);){
+        try (Connection con = DriverManager.getConnection("jdbc:postgresql:bikes",username,password);){
             Statement st = con.createStatement();
             boolean exit = false;
             do {
-                System.out.println("(S)tock List, (C)omputer stock, (P)rice list, (R)estocking list, (E)xit");
-                switch (scanner.next()){
+                System.out.println("(S)tock List, (B)ike stock, (P)rice list, (R)estocking list, Price (O)ffer, Sell (F)rom Price List, (E)xit");
+                switch (scanner.nextLine()){
                     case "s":
                     case "S":
                         printComponentStockList(st);
                         break;
-                    case "c":
-                    case "C":
-                        printComputerStock(st);
+                    case "b":
+                    case "B":
+                        printBikeStock(st);
                         break;
                     case "p":
                     case "P":
@@ -49,6 +57,15 @@ public class Main {
                     case "r":
                     case "R":
                         printRestockingList(st);
+                        break;
+                    case "o":
+                    case "O":
+                        printPriceOffer(st,scanner);
+                        break;
+                    case "f":
+                    case "F":
+                        sellFromPriceList(st,scanner);
+                        break;
                     case "e":
                     case "E":
                         exit = true;
@@ -60,32 +77,66 @@ public class Main {
     }
 
     private static void printComponentStockList(Statement st) throws SQLException {
-        Util.printTable(st.executeQuery(COMPONENT_STOCK_LIST_QUERRY));
+        Util.printTable(st.executeQuery("SELECT name,stock FROM bikes.public.stock;"));
     }
 
-    private static void printPriceOffer(Statement st,String computerName, int amount){
-        //prepared statement
-        //private String GET_PRICE_OFFER_BY_NAME_AND_AMOUNT_QUERRY = "SELECT name, GetPriceOfferForComputerByName('PowerfullSystem',1) as price FROM \"price list\" WHERE name = 'PowerfullSystem';";
+    private static void printPriceOffer(Statement st, Scanner in) throws SQLException {
+        System.out.println("Which bike would you like to buy?");
+        String bike = in.nextLine();
+        System.out.println("How many");
+        int amount =0;
+        boolean success =false;
+        while (!success){
+            try{
+                amount = Integer.valueOf(in.nextLine());
+                success = true;
+            }catch (NumberFormatException e){
+                System.out.println("please enter a valid number");
+                success = false;
+            }
+
+        }
+        try{
+            Util.printTable(st.executeQuery("SELECT name, GetPriceOfferForBikeByName('"+bike+"',"+amount+") as price FROM \"price list\" WHERE name = '"+bike+"';"));
+        }catch (IndexOutOfBoundsException e){
+            System.out.println("A bike with that name is not in stock");
+        }
     }
 
-    private static void printComputerStock(Statement st) throws SQLException {
-        Util.printTable(st.executeQuery("SELECT * FROM \"Computer system stock\""));
+    private static void printBikeStock(Statement st) throws SQLException {
+        Util.printTable(st.executeQuery("SELECT * FROM \"bike stock\""));
     }
 
     private static void printPriceList(Statement st) throws SQLException {
         Util.printTable(st.executeQuery("SELECT * FROM \"price list\""));
     }
 
-    private static void sellFromPriceList(Statement st, String productName, int amount){
-        //prepared statement
+    private static void sellFromPriceList(Statement st, Scanner in) throws SQLException {
+        System.out.println("Which bike or component is sold?");
+        String bike = in.nextLine();
+        System.out.println("How many?");
+        int amount =0;
+        boolean success =false;
+        while (!success){
+            try{
+                amount = Integer.valueOf(in.nextLine());
+                success = true;
+            }catch (NumberFormatException e){
+                System.out.println("please enter a valid number");
+                success = false;
+            }
+
+        }
+        try{
+            st.executeQuery("SELECT sellItem('"+bike+"',"+amount+");");
+            System.out.println("Sale complete");
+        }catch (PSQLException e){
+            System.out.println(e.getMessage());
+        }
     }
 
     private static void printRestockingList(Statement st) throws SQLException {
-        Util.printTable(st.executeQuery("SELECT name, \"prefferred amount\"-stock.\"current amount\" as \"Items to buy\" FROM stock WHERE \"current amount\" < stock.\"minimum amount\";"));
+        Util.printTable(st.executeQuery("SELECT name, preferred-stock as \"Items to buy\" FROM stock WHERE stock < minimum;"));
     }
-
-    private static String COMPONENT_STOCK_LIST_QUERRY = "SELECT name, \"current amount\" FROM stock;";
-
-
 
 }

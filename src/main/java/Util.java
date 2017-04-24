@@ -2,11 +2,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-/**
- * Created by Alex on 04/04/2017.
- */
+
 public class Util {
-    private static final String TABLE_HORIZONTAL_SEPERATOR = "=================================================================================================================================";
+    private static final String TABLE_HORIZONTAL_SEPERATOR = "=================================================================================================================================================================================================";
 
     public static void printTable(ResultSet rs) throws SQLException {
         try{
@@ -19,15 +17,18 @@ public class Util {
                 rows.add(columns);
             }
 
+
+            int longestString;
             for (int i = 0; i < rows.get(0).size(); i++) {
-                int longestString =0;
+                longestString = 0;
                 for (ArrayList<String> row : rows) {
-                    longestString=Math.max(longestString,row.get(i).length());
-                    for (ArrayList<String> row1 : rows) {
-                        row1.set(i,fitStringToLength(row1.get(i),longestString));
-                    }
+                    longestString = Math.max(longestString, row.get(i).length());
+                }
+                for (ArrayList<String> row : rows) {
+                    row.set(i,fitStringToLength(row.get(i),longestString));
                 }
             }
+
             int tableLength = 0;
             for (ArrayList<String> row : rows) {
                 StringBuilder tableRow = new StringBuilder("|| ");
@@ -47,11 +48,11 @@ public class Util {
     }
 
     public static String fitStringToLength(String string, int length){
-        if (string.length()>= length-1){
-            return string.substring(0,length-1);
+        if (string.length()> length){
+            return string.substring(0,length);
         }else{
             StringBuilder stringBuilder = new StringBuilder(string);
-            for (int i = 0; i < length - stringBuilder.length(); i++) {
+            for (int i = stringBuilder.length(); i < length; i++) {
                 stringBuilder.append(" ");
             }
             return stringBuilder.toString();
